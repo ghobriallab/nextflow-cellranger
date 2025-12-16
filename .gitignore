@@ -1,0 +1,37 @@
+nextflow-master/**
+website-main/**
+
+# Nextflow work directory and outputs
+work/
+results/
+test_results/
+.nextflow*
+.nextflow.log*
+
+# Test data (FASTQ files and references are large)
+test_data/fastqs/
+test_data/reference/
+
+# Pipeline reports
+pipeline_info/
+*.html
+*.txt
+timeline*.html
+report*.html
+trace*.txt
+dag*.html
+
+# Docker/Singularity
+.singularity/
+singularity/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

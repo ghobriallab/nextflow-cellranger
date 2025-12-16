@@ -1,0 +1,3 @@
+sample_id,multi_config
+run1,/path/to/multi_config_run1.csv
+run2,/path/to/multi_config_run2.csv

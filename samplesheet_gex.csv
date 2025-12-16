@@ -1,0 +1,4 @@
+sample_id,fastq_dir
+sample1,/path/to/fastqs/sample1
+sample2,/path/to/fastqs/sample2
+sample3,/path/to/fastqs/sample3
