@@ -2,13 +2,12 @@ process CELLRANGER_MULTI {
     tag "$sample_id"
     label 'process_high'
 
-    container "nfcore/cellranger:8.0.1"
-
     publishDir "${params.outdir}/${sample_id}", mode: params.publish_dir_mode
 
     input:
     tuple val(sample_id), path(multi_config)
     path reference
+    path probe_set
 
     output:
     tuple val(sample_id), path("${sample_id}/outs/per_sample_outs/*/count/sample_filtered_feature_bc_matrix"), emit: matrices
@@ -22,8 +21,8 @@ process CELLRANGER_MULTI {
     def memory = task.memory ? "--localmem=${task.memory.toGiga()}" : ''
 
     """
-    # Update the multi config with the correct reference path
-    sed 's|REFERENCE_PATH|${reference}|g' ${multi_config} > config.csv
+    # Update the multi config with the correct reference and probe-set paths
+    sed 's|REFERENCE_PATH|${reference}|g; s|PROBE_SET_PATH|${probe_set}|g' ${multi_config} > config.csv
 
     cellranger multi \\
         --id=${sample_id} \\

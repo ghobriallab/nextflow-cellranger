@@ -44,6 +44,7 @@ workflow {
     Sample Sheet       : ${params.samplesheet}
     Data Type          : ${params.data_type}
     Reference          : ${params.reference}
+    ${params.data_type == 'FLEX' ? "Probe Set          : ${params.probe_set}" : ''}
     ========================================
     """
 
@@ -81,7 +82,8 @@ workflow {
 
         CELLRANGER_MULTI(
             ch_multi_config,
-            file(params.reference)
+            file(params.reference),
+            file(params.probe_set)
         )
 
     } else {

@@ -2,8 +2,6 @@ process CELLRANGER_COUNT {
     tag "$sample_id"
     label 'process_high'
 
-    container "nfcore/cellranger:8.0.1"
-
     publishDir "${params.outdir}/${sample_id}", mode: params.publish_dir_mode
 
     input:

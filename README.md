@@ -27,6 +27,7 @@ Input FASTQ files
 - Nextflow (>=23.04.0)
 - Docker
 - Cell Ranger reference genome (download from [10X Genomics](https://www.10xgenomics.com/support/software/cell-ranger/downloads))
+- Probe set CSV file (required for FLEX data only, download from [10X Genomics](https://www.10xgenomics.com/support/software/cell-ranger/downloads))
 
 ### Installation
 
@@ -56,8 +57,11 @@ nextflow run main.nf \
     --data_type FLEX \
     --samplesheet samplesheet_flex.csv \
     --reference /path/to/refdata-gex-GRCh38-2024-A \
+    --probe_set /path/to/Probe_Set_v1.0_GRCh38-2020-A.csv \
     --outdir results
 ```
+
+**Note**: FLEX data requires a probe set CSV file specific to your gene panel. Download from [10X Genomics Probe Sets](https://www.10xgenomics.com/support/software/cell-ranger/downloads).
 
 ## Input Files
 
@@ -124,6 +128,23 @@ results/
 
 ## Configuration
 
+### Docker Container
+
+The pipeline uses a custom Cell Ranger Docker container. To build and use your own:
+
+1. **Build the container**: See [docker/README.md](docker/README.md) for detailed instructions
+2. **Update the container path** in your config or command line:
+
+```bash
+# In a custom config file
+params {
+    cellranger_container = 'gcr.io/your-project/cellranger:10.0.0'
+}
+
+# Or via command line
+nextflow run main.nf --cellranger_container gcr.io/your-project/cellranger:10.0.0 ...
+```
+
 ### Profiles
 
 - `local`: Local execution with Docker (for testing)
@@ -138,6 +159,7 @@ Key parameters can be set in [conf/params.config](conf/params.config) or via com
 --data_type         # 'GEX' or 'FLEX'
 --samplesheet       # Path to samplesheet CSV
 --reference         # Path to Cell Ranger reference
+--probe_set         # Path to probe set CSV (REQUIRED for FLEX only)
 --outdir            # Output directory (default: ./results)
 --expected_cells    # Expected number of cells (optional)
 --force_cells       # Force cell number (optional)
@@ -157,11 +179,22 @@ Module-specific parameters are defined in [conf/modules.config](conf/modules.con
 2. Update the GCP project in your params file or command line:
 
 ```bash
+# For GEX data
 nextflow run main.nf \
     -profile gcp \
     --data_type GEX \
     --samplesheet samplesheet_gex.csv \
     --reference gs://bucket/refdata-gex-GRCh38-2024-A \
+    --outdir gs://bucket/results \
+    -c my_gcp_config.config
+
+# For FLEX data
+nextflow run main.nf \
+    -profile gcp \
+    --data_type FLEX \
+    --samplesheet samplesheet_flex.csv \
+    --reference gs://bucket/refdata-gex-GRCh38-2024-A \
+    --probe_set gs://bucket/Probe_Set_v1.0_GRCh38-2020-A.csv \
     --outdir gs://bucket/results \
     -c my_gcp_config.config
 ```
@@ -193,6 +226,58 @@ google {
 
 Place test data in the [test_data](test_data) directory. You can download small test datasets from 10X Genomics:
 - [1k PBMCs from a Healthy Donor (v3 chemistry)](https://www.10xgenomics.com/datasets/1-k-pbm-cs-from-a-healthy-donor-v-3-chemistry-3-standard-3-0-0)
+
+## Development
+
+### Setting Up Documentation for AI-Assisted Development
+
+To enable AI agents (like Claude) to access Nextflow and nf-core documentation for better code assistance, download the documentation repositories to the parent folder:
+
+```bash
+cd ..  # Navigate to parent folder (Ghobrial/)
+
+# Download Nextflow documentation (shallow clone for faster download)
+git clone --depth 1 https://github.com/nextflow-io/nextflow.git nextflow-master
+
+# Download nf-core website/documentation (shallow clone for faster download)
+git clone --depth 1 https://github.com/nf-core/website.git website-main
+
+cd nextflow-template  # Return to project directory
+```
+
+**Note**: Using `--depth 1` creates a shallow clone with only the latest commit, significantly reducing download size and time. The documentation files will be available in:
+- `nextflow-master/docs/` - Nextflow documentation (markdown files)
+- `website-main/markdown/` - nf-core documentation and best practices
+
+These documentation folders are referenced in [Claude.md](Claude.md) and allow AI agents to:
+- Reference official Nextflow syntax and best practices
+- Follow nf-core module patterns and conventions
+- Use up-to-date DSL2 syntax
+- Implement proper error handling and resource management
+
+The folders are excluded from git tracking via [.gitignore](.gitignore).
+
+### Directory Structure After Setup
+
+```
+Ghobrial/
+├── nextflow-template/          # This pipeline
+│   ├── main.nf
+│   ├── modules/
+│   ├── conf/
+│   └── Claude.md
+├── nextflow-master/            # Nextflow documentation
+│   └── docs/
+└── website-main/               # nf-core documentation
+    └── markdown/
+```
+
+### Development Workflow
+
+1. Ensure documentation is available in parent folder
+2. Claude will use markdown files from these folders when generating code
+3. Follow the patterns and best practices from the documentation
+4. Reference [Claude.md](Claude.md) for project-specific guidelines
 
 ## Troubleshooting
 

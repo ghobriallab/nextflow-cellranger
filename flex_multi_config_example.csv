@@ -1,0 +1,13 @@
+[gene-expression]
+reference,REFERENCE_PATH
+probe-set,PROBE_SET_PATH
+create-bam,false
+
+[libraries]
+fastq_id,fastqs,feature_types
+flex_gex,/path/to/fastqs,Gene Expression
+
+[samples]
+sample_id,probe_barcode_ids,description
+sample1,BC001|BC002,Control
+sample2,BC003|BC004,Treated
