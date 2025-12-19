@@ -9,10 +9,7 @@ process CELLRANGER_COUNT {
     path reference
 
     output:
-    tuple val(sample_id), path("${sample_id}/outs/filtered_feature_bc_matrix"), emit: matrix
-    tuple val(sample_id), path("${sample_id}/outs/metrics_summary.csv"), emit: metrics
-    tuple val(sample_id), path("${sample_id}/outs/web_summary.html"), emit: web_summary
-    tuple val(sample_id), path("${sample_id}/outs/cloupe.cloupe"), emit: cloupe, optional: true
+    tuple val(sample_id), path("${sample_id}/outs/**"), emit: matrix
     path "versions.yml", emit: versions
 
     script:

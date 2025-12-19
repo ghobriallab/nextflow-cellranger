@@ -39,7 +39,6 @@ workflow {
     ========================================
     Single Cell RNA-seq Pipeline
     ========================================
-    Input Directory    : ${params.input_dir}
     Output Directory   : ${params.outdir}
     Sample Sheet       : ${params.samplesheet}
     Data Type          : ${params.data_type}
@@ -51,7 +50,8 @@ workflow {
     
     // Parse input samplesheet
     ch_samplesheet = Channel.fromPath(params.samplesheet, checkIfExists: true)
-
+    ch_reference = Channel.fromPath(params.reference, checkIfExists: true)
+    ch_probe_set = params.data_type == 'FLEX' ? Channel.fromPath(params.probe_set, checkIfExists: true) : null
     // Branch workflow based on data type
     if (params.data_type == 'GEX') {
 
@@ -77,7 +77,8 @@ workflow {
             .map { row ->
                 def sample_id = row.sample_id
                 def config_csv = row.multi_config
-                return tuple(sample_id, file(config_csv))
+                def fastq_dir = row.fastqs
+                return tuple(sample_id, file(config_csv), file(fastq_dir))
             }
 
         CELLRANGER_MULTI(
@@ -97,13 +98,12 @@ workflow {
     ========================================================================================
     */
 
-    workflow.onComplete {
-        log.info """
-        ========================================
-        Pipeline completed!
-        Status: ${workflow.success ? 'SUCCESS' : 'FAILED'}
-        ========================================
-        """.stripIndent()
-    }
+    onComplete:
+    log.info """
+    ========================================
+    Pipeline completed!
+    Status: ${workflow.success ? 'SUCCESS' : 'FAILED'}
+    ========================================
+    """.stripIndent()
 
 }

@@ -36,57 +36,25 @@ echo "GCP Project: $GCP_PROJECT"
 echo "Region: $GCP_REGION"
 echo ""
 
-# Ask for fresh download URL
-echo -e "${YELLOW}NOTE: The Cell Ranger download URL in the Dockerfile may have expired.${NC}"
-read -p "Do you have a fresh download URL from 10X Genomics? (y/n): " HAS_URL
+# Artifact Registry
+REGISTRY_URL="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${IMAGE_NAME}"
+FULL_IMAGE="${REGISTRY_URL}/${IMAGE_NAME}"
 
-if [ "$HAS_URL" = "y" ]; then
-    read -p "Enter the Cell Ranger download URL: " CELLRANGER_URL
-    BUILD_ARGS="--build-arg CELLRANGER_URL=\"$CELLRANGER_URL\""
-else
-    echo -e "${YELLOW}Using URL from Dockerfile (may fail if expired)${NC}"
-    BUILD_ARGS=""
-fi
-
-# Choose registry type
 echo ""
-echo "Select container registry:"
-echo "1) Container Registry (gcr.io) - Legacy"
-echo "2) Artifact Registry (Artifact Registry) - Recommended"
-read -p "Choice (1 or 2): " REGISTRY_CHOICE
+echo -e "${GREEN}Step 1: Creating Artifact Registry repository...${NC}"
+gcloud artifacts repositories create ${IMAGE_NAME} \
+    --repository-format=docker \
+    --location=${GCP_REGION} \
+    --description="Cell Ranger Docker images" \
+    --project=${GCP_PROJECT} 2>/dev/null || echo "Repository may already exist"
 
-if [ "$REGISTRY_CHOICE" = "2" ]; then
-    # Artifact Registry
-    REGISTRY_URL="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${IMAGE_NAME}"
-    FULL_IMAGE="${REGISTRY_URL}/${IMAGE_NAME}"
-
-    echo ""
-    echo -e "${GREEN}Step 1: Creating Artifact Registry repository...${NC}"
-    gcloud artifacts repositories create ${IMAGE_NAME} \
-        --repository-format=docker \
-        --location=${GCP_REGION} \
-        --description="Cell Ranger Docker images" \
-        --project=${GCP_PROJECT} 2>/dev/null || echo "Repository may already exist"
-
-    echo ""
-    echo -e "${GREEN}Step 2: Configuring Docker authentication...${NC}"
-    gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev
-else
-    # Container Registry
-    FULL_IMAGE="gcr.io/${GCP_PROJECT}/${IMAGE_NAME}"
-
-    echo ""
-    echo -e "${GREEN}Step 1: Configuring Docker authentication...${NC}"
-    gcloud auth configure-docker
-fi
+echo ""
+echo -e "${GREEN}Step 2: Configuring Docker authentication...${NC}"
+gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev
 
 echo ""
 echo -e "${GREEN}Step 3: Building Docker image...${NC}"
-if [ -n "$BUILD_ARGS" ]; then
-    eval docker build $BUILD_ARGS -t ${IMAGE_NAME}:${VERSION} .
-else
-    docker build -t ${IMAGE_NAME}:${VERSION} .
-fi
+docker build -t ${IMAGE_NAME}:${VERSION} .
 
 echo ""
 echo -e "${GREEN}Step 4: Testing the image...${NC}"
