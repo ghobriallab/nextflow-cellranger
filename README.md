@@ -6,6 +6,7 @@ A Nextflow pipeline for processing 10X Genomics single-cell RNA-seq data using C
 
 - **GEX (Gene Expression) data**: Process standard 10X single-cell gene expression data using `cellranger count`
 - **FLEX data**: Process multiplexed Fixed RNA Profiling data using `cellranger multi`
+- **SoupOrCell integration**: Optional demultiplexing and doublet detection for pooled samples
 - **Docker containers**: All processes run in containers for reproducibility
 - **Cloud-ready**: Configured for Google Cloud Platform with local testing profile
 - **Flexible configuration**: Easy parameter customization via config files
@@ -16,6 +17,8 @@ A Nextflow pipeline for processing 10X Genomics single-cell RNA-seq data using C
 Input FASTQ files
     |
     |-- GEX data --> cellranger count --> Filtered matrix + metrics
+    |                      |
+    |                      |--> [Optional] SoupOrCell --> Demultiplexing results
     |
     |-- FLEX data --> cellranger multi --> Per-sample matrices + multiplexing analysis
 ```
@@ -48,6 +51,22 @@ nextflow run main.nf \
     --reference /path/to/refdata-gex-GRCh38-2024-A \
     --outdir results
 ```
+
+#### With SoupOrCell demultiplexing (for pooled samples):
+
+```bash
+nextflow run main.nf \
+    -profile local \
+    --data_type GEX \
+    --samplesheet samplesheet_gex.csv \
+    --reference /path/to/refdata-gex-GRCh38-2024-A \
+    --run_souporcell true \
+    --souporcell_fasta /path/to/genome.fasta \
+    --souporcell_clusters 2 \
+    --outdir results
+```
+
+Note: SoupOrCell requires a reference genome FASTA file and the number of expected clusters/genotypes.
 
 #### For FLEX (Multiplexed) data:
 
@@ -117,6 +136,11 @@ results/
 │       ├── metrics_summary.csv
 │       ├── web_summary.html
 │       └── cloupe.cloupe
+│   └── souporcell/              # (if --run_souporcell true)
+│       └── sample1/
+│           ├── clusters.tsv     # Cell cluster assignments
+│           ├── cluster_genotypes.vcf  # Cluster genotypes
+│           └── ambient_rna.txt  # Ambient RNA profile
 ├── sample2/
 │   └── ...
 └── pipeline_info/
@@ -164,6 +188,9 @@ Key parameters can be set in [conf/params.config](conf/params.config) or via com
 --expected_cells    # Expected number of cells (optional)
 --force_cells       # Force cell number (optional)
 --include_introns   # Include intronic reads (default: false)
+--run_souporcell    # Enable SoupOrCell demultiplexing (default: false)
+--souporcell_fasta  # Reference genome FASTA for SoupOrCell
+--souporcell_clusters # Number of genotypes/clusters (default: 2)
 ```
 
 ### Module Configuration
@@ -221,6 +248,14 @@ google {
 
 - `per_sample_outs/`: Per-sample output directories containing matrices and metrics
 - `multi/multiplexing_analysis/`: Multiplexing analysis results
+
+### SoupOrCell Output (when enabled)
+
+When `--run_souporcell true` is set, the following files are generated in `<sample_id>/souporcell/`:
+
+- `clusters.tsv`: Cell barcode to cluster assignments with doublet detection
+- `cluster_genotypes.vcf`: Called genotypes for each cluster
+- `ambient_rna.txt`: Ambient RNA contamination profile
 
 ## Test Data
 

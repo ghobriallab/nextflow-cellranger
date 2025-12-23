@@ -21,6 +21,7 @@ nextflow.enable.dsl = 2
 
 include { CELLRANGER_COUNT } from './modules/local/cellranger_count/main'
 include { CELLRANGER_MULTI } from './modules/local/cellranger_multi/main'
+include { SOUPORCELL } from './modules/local/souporcell/main'
 
 /*
 ========================================================================================
@@ -44,6 +45,9 @@ workflow {
     Data Type          : ${params.data_type}
     Reference          : ${params.reference}
     ${params.data_type == 'FLEX' ? "Probe Set          : ${params.probe_set}" : ''}
+    ${params.run_souporcell ? "Run SoupOrCell     : true" : ''}
+    ${params.run_souporcell ? "SoupOrCell Fasta   : ${params.souporcell_fasta}" : ''}
+    ${params.run_souporcell ? "SoupOrCell Clusters: ${params.souporcell_clusters}" : ''}
     ========================================
     """
 
@@ -68,6 +72,15 @@ workflow {
             ch_samples,
             file(params.reference)
         )
+
+        // Run SoupOrCell if enabled
+        if (params.run_souporcell) {
+            SOUPORCELL(
+                CELLRANGER_COUNT.out.souporcell_input,
+                file(params.souporcell_fasta),
+                params.souporcell_clusters
+            )
+        }
 
     } else if (params.data_type == 'FLEX') {
 
@@ -98,12 +111,15 @@ workflow {
     ========================================================================================
     */
 
-    onComplete:
+    workflow.onComplete {
     log.info """
     ========================================
     Pipeline completed!
-    Status: ${workflow.success ? 'SUCCESS' : 'FAILED'}
     ========================================
     """.stripIndent()
+    }
+     workflow.onError {
+        log.error "Pipeline failed. Please refer to troubleshooting docs: https://nf-co.re/docs/usage/troubleshooting"
+    }
 
 }

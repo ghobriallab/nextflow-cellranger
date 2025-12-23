@@ -1,8 +1,8 @@
 process CELLRANGER_MULTI {
     tag "$sample_id"
     label 'process_high'
-
-    publishDir "${params.outdir}/${sample_id}", mode: params.publish_dir_mode
+    stageOutMode = 'copy'
+    publishDir "${params.outdir}", mode: params.publish_dir_mode
 
     input:
     tuple val(sample_id), path(multi_config), path(fastq_dir)
@@ -10,7 +10,7 @@ process CELLRANGER_MULTI {
     path probe_set
 
     output:
-    path "flex_S1/outs/**", emit: cellranger_results
+    path "${sample_id}/outs/**", emit: cellranger_results
     path "versions.yml", emit: versions
 
     script:
@@ -28,7 +28,7 @@ process CELLRANGER_MULTI {
     sed "s|FASTQ_PATH|\${FASTQ_PATH}|g" config.csv > config_updated.csv
     mv config_updated.csv config.csv
     cat config.csv
-    ls -lh *
+
     cellranger multi \\
         --id=${sample_id} \\
         --csv=config.csv \\

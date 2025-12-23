@@ -1,7 +1,7 @@
 process CELLRANGER_COUNT {
     tag "$sample_id"
     label 'process_high'
-
+    stageOutMode 'copy'
     publishDir "${params.outdir}/${sample_id}", mode: params.publish_dir_mode
 
     input:
@@ -9,7 +9,8 @@ process CELLRANGER_COUNT {
     path reference
 
     output:
-    tuple val(sample_id), path("${sample_id}/outs/**"), emit: matrix
+    tuple val(sample_id), path("${sample_id}/outs"), emit: matrix
+    tuple val(sample_id), path("${sample_id}/outs/possorted_genome_bam.bam"), path("${sample_id}/outs/raw_feature_bc_matrix/barcodes.tsv.gz"), emit: souporcell_input
     path "versions.yml", emit: versions
 
     script:
