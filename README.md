@@ -40,7 +40,7 @@ Input FASTQ files
 
 ```bash
 git clone <repository>
-cd nextflow-template
+cd nextflow-cellranger
 ```
 
 ### Running the Pipeline
@@ -107,10 +107,12 @@ nextflow run main.nf \
 #### GEX Samplesheet ([samplesheet_gex.csv](samplesheet_gex.csv))
 
 ```csv
-sample_id,fastq_dir
-sample1,/path/to/fastqs/sample1
-sample2,/path/to/fastqs/sample2
+sample_id,fastq_file
+sample1,/path/to/fastqs/sample1/*_R{1,2}_*.fastq.gz
+sample2,/path/to/fastqs/sample2/*_R{1,2}_*.fastq.gz
 ```
+
+The `fastq_file` column should contain a glob pattern matching your FASTQ files. The pipeline will automatically organize them into a proper directory structure for Cell Ranger.
 
 #### GEX + VDJ Samplesheet
 
@@ -132,31 +134,32 @@ donor2_VDJ_T,/path/to/fastqs/donor2_vdj_t/*_R{1,2}_*.fastq.gz
 #### FLEX Samplesheet ([samplesheet_flex.csv](samplesheet_flex.csv))
 
 ```csv
-sample_id,multi_config
-run1,/path/to/multi_config_run1.csv
-run2,/path/to/multi_config_run2.csv
+sample_id,multi_config,fastqs
+run1,/path/to/multi_config_run1.csv,/path/to/fastqs/run1
+run2,/path/to/multi_config_run2.csv,/path/to/fastqs/run2
 ```
 
-#### FLEX Multi Config Format ([multi_config_example.csv](multi_config_example.csv))
+#### FLEX Multi Config Format ([flex_multi_config_example.csv](flex_multi_config_example.csv))
 
 See the Cell Ranger documentation for the multi config CSV format. Example:
 
 ```csv
 [gene-expression]
 reference,REFERENCE_PATH
-create-bam,true
+probe-set,PROBE_SET_PATH
+create-bam,false
 
 [libraries]
-fastq_id,fastqs,lanes,physical_library_id,feature_types,subsample_rate
-GEX_sample1,/path/to/fastqs,any,GEX1,Gene Expression,
+fastq_id,fastqs,feature_types
+flex_gex,/path/to/fastqs,Gene Expression
 
 [samples]
-sample_id,cmo_ids,description
-Sample1,CMO301,Patient 1
-Sample2,CMO302,Patient 2
+sample_id,probe_barcode_ids,description
+sample1,BC001|BC002,Control
+sample2,BC003|BC004,Treated
 ```
 
-Note: `REFERENCE_PATH` in the multi config will be automatically replaced with the actual reference path.
+Note: `REFERENCE_PATH` and `PROBE_SET_PATH` in the multi config will be automatically replaced with the actual reference and probe set paths.
 
 ## Output Structure
 
@@ -212,7 +215,7 @@ nextflow run main.nf --cellranger_container gcr.io/your-project/cellranger:10.0.
 
 ### Parameters
 
-Key parameters can be set in [conf/params.config](conf/params.config) or via command line:
+Key parameters can be set in [nextflow.config](nextflow.config) or via command line:
 
 ```bash
 --data_type         # 'GEX' or 'FLEX'
@@ -318,7 +321,7 @@ git clone --depth 1 https://github.com/nextflow-io/nextflow.git nextflow-master
 # Download nf-core website/documentation (shallow clone for faster download)
 git clone --depth 1 https://github.com/nf-core/website.git website-main
 
-cd nextflow-template  # Return to project directory
+cd nextflow-cellranger  # Return to project directory
 ```
 
 **Note**: Using `--depth 1` creates a shallow clone with only the latest commit, significantly reducing download size and time. The documentation files will be available in:
@@ -337,7 +340,7 @@ The folders are excluded from git tracking via [.gitignore](.gitignore).
 
 ```
 Ghobrial/
-├── nextflow-template/          # This pipeline
+├── nextflow-cellranger/          # This pipeline
 │   ├── main.nf
 │   ├── modules/
 │   ├── conf/

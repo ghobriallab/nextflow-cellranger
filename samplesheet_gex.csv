@@ -1,4 +1,4 @@
-sample_id,fastq_dir
-sample1,/path/to/fastqs/sample1
-sample2,/path/to/fastqs/sample2
-sample3,/path/to/fastqs/sample3
+sample_id,fastq_file
+sample1,/path/to/fastqs/sample1/*_R{1,2}_*.fastq.gz
+sample2,/path/to/fastqs/sample2/*_R{1,2}_*.fastq.gz
+sample3,/path/to/fastqs/sample3/*_R{1,2}_*.fastq.gz
