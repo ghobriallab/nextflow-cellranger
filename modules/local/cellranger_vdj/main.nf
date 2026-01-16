@@ -1,6 +1,5 @@
-process CELLRANGER_COUNT {
+process CELLRANGER_VDJ {
     tag "$sample_id"
-    label 'process_high'
     stageOutMode 'copy'
     publishDir "${params.outdir}/${sample_id}", mode: params.publish_dir_mode
 
@@ -9,8 +8,7 @@ process CELLRANGER_COUNT {
     path reference
 
     output:
-    tuple val(sample_id), path("${sample_id}/outs"), emit: matrix
-    tuple val(sample_id), path("${sample_id}/outs/possorted_genome_bam.bam"), path("${sample_id}/outs/raw_feature_bc_matrix/barcodes.tsv.gz"), emit: souporcell_input
+    tuple val(sample_id), path("${sample_id}/outs"), emit: vdj_results
     path "versions.yml", emit: versions
 
     script:
@@ -22,9 +20,9 @@ process CELLRANGER_COUNT {
     REF_PATH=\$(readlink -f ${reference})
     FASTQ_PATH=\$(readlink -f ${fastq_dir})
     
-    cellranger count \\
+    cellranger vdj \\
         --id=${sample_id} \\
-        --transcriptome=\${REF_PATH} \\
+        --reference=\${REF_PATH} \\
         --fastqs=\${FASTQ_PATH} \\
         --sample=${sample_id} \\
         --localcores=${task.cpus} \\
@@ -39,9 +37,11 @@ process CELLRANGER_COUNT {
 
     stub:
     """
-    mkdir -p ${sample_id}/outs/filtered_feature_bc_matrix
+    mkdir -p ${sample_id}/outs/filtered_contig_annotations
     touch ${sample_id}/outs/metrics_summary.csv
     touch ${sample_id}/outs/web_summary.html
+    touch ${sample_id}/outs/filtered_contig_annotations.csv
+    touch ${sample_id}/outs/clonotypes.csv
     touch versions.yml
     """
 }

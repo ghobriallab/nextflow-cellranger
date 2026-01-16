@@ -1,0 +1,5 @@
+sample_id,fastq_file
+donor1_GEX,/path/to/fastqs/donor1_gex/*_R{1,2}_*.fastq.gz
+donor1_VDJ_T,/path/to/fastqs/donor1_vdj_t/*_R{1,2}_*.fastq.gz
+donor2_GEX,/path/to/fastqs/donor2_gex/*_R{1,2}_*.fastq.gz
+donor2_VDJ_T,/path/to/fastqs/donor2_vdj_t/*_R{1,2}_*.fastq.gz

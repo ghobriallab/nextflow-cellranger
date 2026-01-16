@@ -5,6 +5,7 @@ A Nextflow pipeline for processing 10X Genomics single-cell RNA-seq data using C
 ## Features
 
 - **GEX (Gene Expression) data**: Process standard 10X single-cell gene expression data using `cellranger count`
+- **VDJ (Immune Profiling) data**: Process V(D)J immune receptor sequencing data using `cellranger vdj`
 - **FLEX data**: Process multiplexed Fixed RNA Profiling data using `cellranger multi`
 - **SoupOrCell integration**: Optional demultiplexing and doublet detection for pooled samples
 - **Docker containers**: All processes run in containers for reproducibility
@@ -20,6 +21,8 @@ Input FASTQ files
     |                      |
     |                      |--> [Optional] SoupOrCell --> Demultiplexing results
     |
+    |-- VDJ data --> cellranger vdj --> V(D)J contig annotations + clonotypes
+    |
     |-- FLEX data --> cellranger multi --> Per-sample matrices + multiplexing analysis
 ```
 
@@ -30,6 +33,7 @@ Input FASTQ files
 - Nextflow (>=23.04.0)
 - Docker
 - Cell Ranger reference genome (download from [10X Genomics](https://www.10xgenomics.com/support/software/cell-ranger/downloads))
+- VDJ reference (required for VDJ data only, download from [10X Genomics](https://www.10xgenomics.com/support/software/cell-ranger/downloads))
 - Probe set CSV file (required for FLEX data only, download from [10X Genomics](https://www.10xgenomics.com/support/software/cell-ranger/downloads))
 
 ### Installation
@@ -68,6 +72,20 @@ nextflow run main.nf \
 
 Note: SoupOrCell requires a reference genome FASTA file and the number of expected clusters/genotypes.
 
+#### For GEX and VDJ (Gene Expression + Immune Profiling) data:
+
+```bash
+nextflow run main.nf \
+    -profile local \
+    --data_type GEX \
+    --samplesheet samplesheet_gex_vdj.csv \
+    --reference /path/to/refdata-gex-GRCh38-2024-A \
+    --vdj_reference /path/to/refdata-cellranger-vdj-GRCh38-alts-ensembl-7.1.0 \
+    --outdir results
+```
+
+**Note**: For VDJ data, sample IDs in the samplesheet must contain 'VDJ' (e.g., `sample1_VDJ`, `donor1_VDJ_T`). GEX samples should contain 'GEX' (e.g., `sample1_GEX`, `donor1_GEX`). The pipeline will automatically route samples to the appropriate processing pipeline based on the sample ID.
+
 #### For FLEX (Multiplexed) data:
 
 ```bash
@@ -93,6 +111,23 @@ sample_id,fastq_dir
 sample1,/path/to/fastqs/sample1
 sample2,/path/to/fastqs/sample2
 ```
+
+#### GEX + VDJ Samplesheet
+
+For samples with both GEX and VDJ data, use sample IDs containing 'GEX' or 'VDJ' to route them correctly:
+
+```csv
+sample_id,fastq_file
+donor1_GEX,/path/to/fastqs/donor1_gex/*_R{1,2}_*.fastq.gz
+donor1_VDJ,/path/to/fastqs/donor1_vdj/*_R{1,2}_*.fastq.gz
+donor2_GEX,/path/to/fastqs/donor2_gex/*_R{1,2}_*.fastq.gz
+donor2_VDJ_T,/path/to/fastqs/donor2_vdj_t/*_R{1,2}_*.fastq.gz
+```
+
+**Important**: 
+- Sample IDs containing 'GEX' (case-insensitive) will be processed with `cellranger count`
+- Sample IDs containing 'VDJ' (case-insensitive) will be processed with `cellranger vdj`
+- VDJ processing requires `--vdj_reference` parameter
 
 #### FLEX Samplesheet ([samplesheet_flex.csv](samplesheet_flex.csv))
 
@@ -182,7 +217,8 @@ Key parameters can be set in [conf/params.config](conf/params.config) or via com
 ```bash
 --data_type         # 'GEX' or 'FLEX'
 --samplesheet       # Path to samplesheet CSV
---reference         # Path to Cell Ranger reference
+--reference         # Path to Cell Ranger GEX reference
+--vdj_reference     # Path to Cell Ranger VDJ reference (REQUIRED for VDJ samples)
 --probe_set         # Path to probe set CSV (REQUIRED for FLEX only)
 --outdir            # Output directory (default: ./results)
 --expected_cells    # Expected number of cells (optional)
@@ -199,6 +235,11 @@ Module-specific parameters are defined in [conf/modules.config](conf/modules.con
 - Resource allocation (CPU, memory, time)
 - Cell Ranger arguments
 - Publishing options
+
+## Additional Documentation
+
+- **[VDJ (Immune Profiling)](docs/VDJ.md)**: Detailed guide for V(D)J immune receptor sequencing
+- **[SoupOrCell](docs/SOUPORCELL.md)**: Guide for demultiplexing pooled samples
 
 ## Running on Google Cloud
 

@@ -1,0 +1,81 @@
+nextflow_process {
+
+    name "Test Process PREP_FASTQS"
+    script "../main.nf"
+    process "PREP_FASTQS"
+    tag "modules"
+    tag "modules_local"
+    tag "prep_fastqs"
+
+    test("Should prepare and rename FASTQ files correctly") {
+
+        when {
+            process {
+                """
+                input[0] = tuple(
+                    'Sample',
+                    [
+                        file("${projectDir}/test_data/prep_fastqs/input/23CN73LT4_1_0462200685_Sample_S1_L001_R1_001.fastq.gz"),
+                        file("${projectDir}/test_data/prep_fastqs/input/23CN73LT4_1_0462200685_Sample_S1_L001_R2_001.fastq.gz"),
+                        file("${projectDir}/test_data/prep_fastqs/input/23CN73LT4_2_0462200685_Sample_S1_L002_R1_001.fastq.gz"),
+                        file("${projectDir}/test_data/prep_fastqs/input/23CN73LT4_2_0462200685_Sample_S1_L002_R2_001.fastq.gz")
+                    ]
+                )
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.fastq_dir.size() == 1 },
+                { assert process.out.fastq_dir.get(0).get(0) == 'Sample' },
+                {
+                    def output_dir = path(process.out.fastq_dir.get(0).get(1))
+                    assert output_dir.exists()
+                    
+                    // Check that renamed files exist (4 files from 2 sources with duplicate suffixes)
+                    def files = output_dir.list().collect { it.fileName.toString() }.sort()
+                    assert files.size() == 4
+                    // Original files plus numbered duplicates
+                    assert files.contains('Sample_S1_L001_R1_001.fastq.gz')
+                    assert files.contains('Sample_S1_L001_R2_001.fastq.gz')
+                    assert files.contains('Sample_S1_L002_R1_001.fastq.gz')
+                    assert files.contains('Sample_S1_L002_R2_001.fastq.gz')
+                }
+            )
+        }
+    }
+
+    test("Should handle multiple samples") {
+
+        when {
+            process {
+                """
+                input[0] = tuple(
+                    'TestSample',
+                    [
+                        file("${projectDir}/test_data/prep_fastqs/input/23CN73LT4_1_0462200685_Sample_S1_L001_R1_001.fastq.gz"),
+                        file("${projectDir}/test_data/prep_fastqs/input/23CN73LT4_1_0462200685_Sample_S1_L001_R2_001.fastq.gz")
+                    ]
+                )
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.fastq_dir.size() == 1 },
+                { assert process.out.fastq_dir.get(0).get(0) == 'TestSample' },
+                {
+                    def output_dir = path(process.out.fastq_dir.get(0).get(1))
+                    def files = output_dir.list().collect { it.fileName.toString() }.sort()
+                    assert files.size() == 2
+                    assert files.contains('TestSample_S1_L001_R1_001.fastq.gz')
+                    assert files.contains('TestSample_S1_L001_R2_001.fastq.gz')
+                }
+            )
+        }
+    }
+}

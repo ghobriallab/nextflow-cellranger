@@ -1,0 +1,4 @@
+sample_id,bam_file,barcodes,clusters
+sample1,/path/to/sample1/possorted_genome_bam.bam,/path/to/sample1/filtered_feature_bc_matrix/barcodes.tsv.gz,2
+sample2,/path/to/sample2/possorted_genome_bam.bam,/path/to/sample2/filtered_feature_bc_matrix/barcodes.tsv.gz,3
+sample3,/path/to/sample3/possorted_genome_bam.bam,/path/to/sample3/filtered_feature_bc_matrix/barcodes.tsv.gz,2
