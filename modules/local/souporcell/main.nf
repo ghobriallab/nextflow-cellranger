@@ -1,9 +1,11 @@
 process SOUPORCELL {
     tag "$sample_id"
-    label 'process_medium'
-    stageOutMode = 'copy'
-    publishDir "${params.outdir}/${sample_id}/souporcell", mode: params.publish_dir_mode
-
+    stageOutMode 'copy'
+    // publishDir "${params.outdir}/${sample_id}/souporcell", mode: params.publish_dir_mode
+    publishDir "${params.outdir}/${sample_id}", mode: params.publish_dir_mode, saveAs: { filename ->
+        // Strip the sample_id/outs/ prefix to publish contents directly
+        filename.replaceFirst(/^[^\/]+\/souporcell\//, '')
+    }
     container 'community.wave.seqera.io/library/souporcell_gxx:f648658dde2cdd53'
 
     input:
