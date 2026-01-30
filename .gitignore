@@ -7,11 +7,12 @@ results/
 test_results/
 .nextflow*
 .nextflow.log*
+.nf-test**
 
 # Test data (FASTQ files and references are large)
 test_data/fastqs/
 test_data/reference/
-
+test_data**
 # Pipeline reports
 pipeline_info/
 *.html
@@ -24,6 +25,7 @@ dag*.html
 # Docker/Singularity
 .singularity/
 singularity/
+docker/*gz
 
 # IDE
 .vscode/
