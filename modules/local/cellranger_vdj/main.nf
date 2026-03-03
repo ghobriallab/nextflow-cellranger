@@ -1,6 +1,5 @@
 process CELLRANGER_VDJ {
     tag "$sample_id"
-    stageOutMode 'copy'
     publishDir "${params.outdir}/${sample_id}", mode: params.publish_dir_mode
 
     input:

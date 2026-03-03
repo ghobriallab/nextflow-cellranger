@@ -1,6 +1,5 @@
 process CELLRANGER_COUNT {
     tag "$sample_id"
-    stageOutMode 'copy'
     publishDir "${params.outdir}/${sample_id}", mode: params.publish_dir_mode, saveAs: { filename ->
         // Strip the sample_id/outs/ prefix to publish contents directly
         filename.replaceFirst(/^[^\/]+\/outs\//, '')
