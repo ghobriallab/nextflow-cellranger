@@ -1,8 +1,7 @@
 process CELLRANGER_COUNT {
     tag "$sample_id"
-    publishDir "${params.outdir}/${sample_id}", mode: params.publish_dir_mode, saveAs: { filename ->
-        // Strip the sample_id/outs/ prefix to publish contents directly
-        filename.replaceFirst(/^[^\/]+\/outs\//, '')
+    publishDir "${params.outdir}", mode: params.publish_dir_mode, saveAs: { filename ->
+        filename.replaceFirst(/^([^\/]+)\/outs\//, '$1/')
     }
 
     input:
@@ -10,7 +9,7 @@ process CELLRANGER_COUNT {
     path reference
 
     output:
-    tuple val(sample_id), path("${sample_id}/outs"), emit: matrix
+    tuple val(sample_id), path("${sample_id}/outs/**"), emit: matrix
     tuple val(sample_id), path("${sample_id}/outs/possorted_genome_bam.bam"), path("${sample_id}/outs/raw_feature_bc_matrix/barcodes.tsv.gz"), emit: souporcell_input
     path "versions.yml", emit: versions
 

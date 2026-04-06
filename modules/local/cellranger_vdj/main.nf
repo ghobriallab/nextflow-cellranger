@@ -1,13 +1,15 @@
 process CELLRANGER_VDJ {
     tag "$sample_id"
-    publishDir "${params.outdir}/${sample_id}", mode: params.publish_dir_mode
+    publishDir "${params.outdir}", mode: params.publish_dir_mode, saveAs: { filename ->
+        filename.replaceFirst(/^([^\/]+)\/outs\//, '$1/')
+    }
 
     input:
     tuple val(sample_id), path(fastq_dir)
     path reference
 
     output:
-    tuple val(sample_id), path("${sample_id}/outs"), emit: vdj_results
+    tuple val(sample_id), path("${sample_id}/outs/**"), emit: vdj_results
     path "versions.yml", emit: versions
 
     script:
