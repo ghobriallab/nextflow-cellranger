@@ -24,6 +24,7 @@ nextflow.enable.dsl = 2
 */
 
 include { CELLRANGER_COUNT } from './modules/local/cellranger_count/main'
+include { CELLRANGER_MKREF } from './modules/local/cellranger_mkref/main'
 include { CELLRANGER_MULTI } from './modules/local/cellranger_multi/main'
 include { CELLRANGER_VDJ } from './modules/local/cellranger_vdj/main'
 include { SOUPORCELL } from './modules/local/souporcell/main'
@@ -63,8 +64,20 @@ workflow {
     
     // Parse input samplesheet
     ch_samplesheet = Channel.fromPath(params.samplesheet, checkIfExists: true)
-    ch_reference = params.data_type != 'SOUPORCELL' ? Channel.fromPath(params.reference, checkIfExists: true) : null
     ch_probe_set = params.data_type == 'FLEX' ? Channel.fromPath(params.probe_set, checkIfExists: true) : null
+
+    // Resolve reference: build with mkref if fasta+gtf provided, otherwise use pre-built reference
+    if (params.data_type != 'SOUPORCELL') {
+        if (params.fasta && params.gtf) {
+            CELLRANGER_MKREF(
+                file(params.fasta, checkIfExists: true),
+                file(params.gtf,   checkIfExists: true)
+            )
+            ch_reference = CELLRANGER_MKREF.out.reference
+        } else {
+            ch_reference = channel.fromPath(params.reference, checkIfExists: true)
+        }
+    }
     // Branch workflow based on data type
     if (params.data_type == 'SOUPORCELL') {
 
@@ -118,13 +131,20 @@ workflow {
         // Process GEX samples
         CELLRANGER_COUNT(
             ch_branched.gex,
-            file(params.reference)
+            ch_reference
         )
 
         // Process VDJ samples (if VDJ reference is provided)
         if (params.vdj_reference) {
+            ch_vdj = ch_branched.vdj
+                .map { sample_id, fastq_dir ->
+                    def chain = sample_id ==~ /(?i).*TCR.*/ ? 'TR'
+                               : sample_id ==~ /(?i).*BCR.*/ ? 'IG'
+                               : null
+                    tuple(sample_id, fastq_dir, chain)
+                }
             CELLRANGER_VDJ(
-                ch_branched.vdj,
+                ch_vdj,
                 file(params.vdj_reference)
             )
         }
@@ -174,7 +194,7 @@ workflow {
 
         CELLRANGER_MULTI(
             ch_multi_config,
-            file(params.reference),
+            ch_reference,
             file(params.probe_set)
         )
 

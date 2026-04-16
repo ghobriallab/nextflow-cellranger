@@ -5,7 +5,7 @@ process CELLRANGER_VDJ {
     }
 
     input:
-    tuple val(sample_id), path(fastq_dir)
+    tuple val(sample_id), path(fastq_dir), val(chain)
     path reference
 
     output:
@@ -15,12 +15,13 @@ process CELLRANGER_VDJ {
     script:
     def args = task.ext.args ?: ''
     def memory = task.memory ? "--localmem=${task.memory.toGiga()}" : ''
+    def chain_arg = chain ? "--chain=${chain}" : ''
 
     """
     # Resolve absolute paths for reference and fastqs
     REF_PATH=\$(readlink -f ${reference})
     FASTQ_PATH=\$(readlink -f ${fastq_dir})
-    
+
     cellranger vdj \\
         --id=${sample_id} \\
         --reference=\${REF_PATH} \\
@@ -28,6 +29,7 @@ process CELLRANGER_VDJ {
         --sample=${sample_id} \\
         --localcores=${task.cpus} \\
         ${memory} \\
+        ${chain_arg} \\
         ${args}
 
     cat <<-END_VERSIONS > versions.yml
