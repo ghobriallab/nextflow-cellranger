@@ -16,7 +16,6 @@ process CELLRANGER_VDJ {
     def args = task.ext.args ?: ''
     def memory = task.memory ? "--localmem=${task.memory.toGiga()}" : ''
     def chain_arg = chain ? "--chain=${chain}" : ''
-
     """
     # Resolve absolute paths for reference and fastqs
     REF_PATH=\$(readlink -f ${reference})
@@ -29,8 +28,7 @@ process CELLRANGER_VDJ {
         --sample=${sample_id} \\
         --localcores=${task.cpus} \\
         ${memory} \\
-        ${chain_arg} \\
-        ${args}
+        ${chain_arg} ${args}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

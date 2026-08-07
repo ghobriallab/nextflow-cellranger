@@ -16,12 +16,13 @@ process CELLRANGER_COUNT {
     script:
     def args = task.ext.args ?: ''
     def memory = task.memory ? "--localmem=${task.memory.toGiga()}" : ''
+    def chemistry_arg = params.chemistry ? "--chemistry=${params.chemistry}" : ''
 
     """
     # Resolve absolute paths for reference and fastqs
     REF_PATH=\$(readlink -f ${reference})
     FASTQ_PATH=\$(readlink -f ${fastq_dir})
-    
+
     cellranger count \\
         --id=${sample_id} \\
         --transcriptome=\${REF_PATH} \\
@@ -29,6 +30,7 @@ process CELLRANGER_COUNT {
         --sample=${sample_id} \\
         --localcores=${task.cpus} \\
         ${memory} \\
+        ${chemistry_arg} \\
         ${args}
 
     cat <<-END_VERSIONS > versions.yml

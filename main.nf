@@ -53,6 +53,7 @@ workflow {
     ${params.data_type != 'SOUPORCELL' ? "Reference          : ${params.reference}" : ''}
     ${params.vdj_reference ? "VDJ Reference      : ${params.vdj_reference}" : ''}
     ${params.data_type == 'FLEX' ? "Probe Set          : ${params.probe_set}" : ''}
+    ${params.chemistry ? "Chemistry          : ${params.chemistry}" : 'Chemistry          : auto-detect'}
     ${params.data_type == 'SOUPORCELL' || params.run_souporcell ? "SoupOrCell Fasta   : ${params.souporcell_fasta}" : ''}
     ${params.data_type == 'SOUPORCELL' ? "SoupOrCell Mode    : Standalone (BAM files provided)" : ''}
     ${params.run_souporcell && params.data_type != 'SOUPORCELL' ? "Run SoupOrCell     : true" : ''}
@@ -63,8 +64,7 @@ workflow {
 
     
     // Parse input samplesheet
-    ch_samplesheet = Channel.fromPath(params.samplesheet, checkIfExists: true)
-    ch_probe_set = params.data_type == 'FLEX' ? Channel.fromPath(params.probe_set, checkIfExists: true) : null
+    ch_samplesheet = channel.fromPath(params.samplesheet, checkIfExists: true)
 
     // Resolve reference: build with mkref if fasta+gtf provided, otherwise use pre-built reference
     if (params.data_type != 'SOUPORCELL') {
@@ -75,7 +75,7 @@ workflow {
             )
             ch_reference = CELLRANGER_MKREF.out.reference
         } else {
-            ch_reference = channel.fromPath(params.reference, checkIfExists: true)
+            ch_reference = channel.value(file(params.reference, checkIfExists: true))
         }
     }
     // Branch workflow based on data type
@@ -106,8 +106,8 @@ workflow {
                 def sample_id = row.sample_id
                 def glob_pattern = row.fastq_file
                 // Collect all files matching the glob pattern
-                def files = file(glob_pattern)
-                return tuple(sample_id, files)
+                def matched_files = files(glob_pattern)
+                return tuple(sample_id, matched_files)
             }
             .groupTuple()
             .map { sid, file_lists -> 
@@ -122,9 +122,9 @@ workflow {
 
         // Branch samples into GEX and VDJ based on sample_id
         ch_samples
-            .branch {
-                gex: it[0] =~ /(?i).*GEX.*/
-                vdj: it[0] =~ /(?i).*VDJ.*/
+            .branch { item ->
+                gex: item[0] =~ /(?i).*GEX.*/
+                vdj: item[0] =~ /(?i).*VDJ.*/
             }
             .set { ch_branched }
 
@@ -154,7 +154,7 @@ workflow {
             // Create a channel for cluster counts per sample
             if (params.souporcell_clusters_file) {
                 // Parse the clusters file and create a map of sample_id to cluster count
-                ch_clusters = Channel.fromPath(params.souporcell_clusters_file, checkIfExists: true)
+                ch_clusters = channel.fromPath(params.souporcell_clusters_file, checkIfExists: true)
                     .splitCsv(header: true, sep: ',')
                     .map { row -> 
                         tuple(row.sample_id, row.sample_count.toInteger())

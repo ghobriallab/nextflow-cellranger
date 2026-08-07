@@ -1,11 +1,11 @@
 process SOUPORCELL {
     tag "$sample_id"
     // publishDir "${params.outdir}/${sample_id}/souporcell", mode: params.publish_dir_mode
-    publishDir "${params.outdir}/${sample_id}", mode: params.publish_dir_mode, saveAs: { filename ->
+    publishDir {"${params.outdir}/${sample_id}"}, mode: params.publish_dir_mode, saveAs: { filename ->
         // Strip the sample_id/outs/ prefix to publish contents directly
         filename.replaceFirst(/^[^\/]+\/souporcell\//, '')
     }
-    container 'community.wave.seqera.io/library/souporcell_gxx:f648658dde2cdd53'
+    container 'community.wave.seqera.io/library/souporcell:2.5--2b23aea4d0753391'
 
     input:
     tuple val(sample_id), path(bam), path(barcodes), val(clusters)
