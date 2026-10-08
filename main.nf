@@ -27,7 +27,10 @@ include { CELLRANGER_COUNT } from './modules/local/cellranger_count/main'
 include { CELLRANGER_MKREF } from './modules/local/cellranger_mkref/main'
 include { CELLRANGER_MULTI } from './modules/local/cellranger_multi/main'
 include { CELLRANGER_VDJ } from './modules/local/cellranger_vdj/main'
+include { CELLRANGER_ARC_COUNT } from './modules/local/cellranger_arc_count/main'
 include { SOUPORCELL } from './modules/local/souporcell/main'
+include { PREP_FASTQS as PREP_FASTQS_GEX } from './modules/local/prep_fastqs/main'
+include { PREP_FASTQS as PREP_FASTQS_ATAC } from './modules/local/prep_fastqs/main'
 include { PREP_FASTQS } from './modules/local/prep_fastqs/main'
 
 /*
@@ -50,7 +53,8 @@ workflow {
     Output Directory   : ${params.outdir}
     Sample Sheet       : ${params.samplesheet}
     Data Type          : ${params.data_type}
-    ${params.data_type != 'SOUPORCELL' ? "Reference          : ${params.reference}" : ''}
+    ${params.data_type == 'MULTIOME' ? "ARC Reference      : ${params.arc_reference}" : ''}
+    ${params.data_type != 'SOUPORCELL' && params.data_type != 'MULTIOME' ? "Reference          : ${params.reference}" : ''}
     ${params.vdj_reference ? "VDJ Reference      : ${params.vdj_reference}" : ''}
     ${params.data_type == 'FLEX' ? "Probe Set          : ${params.probe_set}" : ''}
     ${params.chemistry ? "Chemistry          : ${params.chemistry}" : 'Chemistry          : auto-detect'}
@@ -67,7 +71,9 @@ workflow {
     ch_samplesheet = channel.fromPath(params.samplesheet, checkIfExists: true)
 
     // Resolve reference: build with mkref if fasta+gtf provided, otherwise use pre-built reference
-    if (params.data_type != 'SOUPORCELL') {
+    if (params.data_type == 'MULTIOME') {
+        ch_reference = channel.value(file(params.arc_reference, checkIfExists: true))
+    } else if (params.data_type != 'SOUPORCELL') {
         if (params.fasta && params.gtf) {
             CELLRANGER_MKREF(
                 file(params.fasta, checkIfExists: true),
@@ -116,7 +122,7 @@ workflow {
                 return tuple(sid, all_files)
             }
 
-        ch_prepped_fastqs = PREP_FASTQS(ch_samplesheet_globs)
+        ch_prepped_fastqs = PREP_FASTQS(ch_samplesheet_globs, '_fastqs')
 
         ch_samples = ch_prepped_fastqs.map { sid, fqdir -> tuple(sid, fqdir) }
 
@@ -180,6 +186,29 @@ workflow {
             )
         }
 
+    } else if (params.data_type == 'MULTIOME') {
+
+        // For MULTIOME data: each sample has separate GEX and ATAC fastq glob patterns
+        ch_multiome_samplesheet = ch_samplesheet
+            .splitCsv(header: true, sep: ',')
+
+        ch_gex_globs = ch_multiome_samplesheet
+            .map { row -> tuple(row.sample_id, files(row.gex_fastq_file)) }
+
+        ch_atac_globs = ch_multiome_samplesheet
+            .map { row -> tuple(row.sample_id, files(row.atac_fastq_file)) }
+
+        ch_gex_prepped = PREP_FASTQS_GEX(ch_gex_globs, '_gex_fastqs')
+        ch_atac_prepped = PREP_FASTQS_ATAC(ch_atac_globs, '_atac_fastqs')
+
+        ch_multiome_input = ch_gex_prepped.fastq_dir
+            .join(ch_atac_prepped.fastq_dir, by: 0)
+
+        CELLRANGER_ARC_COUNT(
+            ch_multiome_input,
+            ch_reference
+        )
+
     } else if (params.data_type == 'FLEX') {
 
         // For FLEX data: use cellranger multi (handles multiplexing)
@@ -199,7 +228,7 @@ workflow {
         )
 
     } else {
-        error "Invalid data_type: ${params.data_type}. Must be 'GEX', 'FLEX', or 'SOUPORCELL'"
+        error "Invalid data_type: ${params.data_type}. Must be 'GEX', 'FLEX', 'MULTIOME', or 'SOUPORCELL'"
     }
 
 

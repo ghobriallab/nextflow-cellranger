@@ -1,0 +1,3 @@
+sample_id,gex_fastq_file,atac_fastq_file
+sample1,/path/to/fastqs/sample1_gex/*_R{1,2}_*.fastq.gz,/path/to/fastqs/sample1_atac/*_R{1,2,3}_*.fastq.gz
+sample2,/path/to/fastqs/sample2_gex/*_R{1,2}_*.fastq.gz,/path/to/fastqs/sample2_atac/*_R{1,2,3}_*.fastq.gz

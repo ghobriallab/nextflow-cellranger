@@ -21,6 +21,7 @@ nextflow_process {
                         file("${projectDir}/test_data/prep_fastqs/input/23CN73LT4_2_0462200685_Sample_S1_L002_R2_001.fastq.gz")
                     ]
                 )
+                input[1] = '_fastqs'
                 """
             }
         }
@@ -59,6 +60,7 @@ nextflow_process {
                         file("${projectDir}/test_data/prep_fastqs/input/23CN73LT4_1_0462200685_Sample_S1_L001_R2_001.fastq.gz")
                     ]
                 )
+                input[1] = '_fastqs'
                 """
             }
         }

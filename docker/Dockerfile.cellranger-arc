@@ -1,0 +1,30 @@
+FROM ubuntu:22.04
+
+LABEL maintainer="your-email@example.com"
+LABEL description="Docker image for Cell Ranger ARC 2.2.0 (Single Cell Multiome ATAC + Gene Expression)"
+LABEL version="2.2.0"
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    tar \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /opt
+
+# Copy and install Cell Ranger ARC 2.2.0
+# Note: User must download cellranger-arc-2.2.0.tar.gz from 10X Genomics first
+# (requires accepting the 10x Genomics software license; not redistributable)
+COPY cellranger-arc-2.2.0.tar.gz .
+
+RUN tar -xzvf cellranger-arc-2.2.0.tar.gz \
+    && rm cellranger-arc-2.2.0.tar.gz
+
+# Add Cell Ranger ARC to PATH
+ENV PATH="/opt/cellranger-arc-2.2.0:${PATH}"
+
+# Verify installation
+RUN cellranger-arc --version
+
+# Set default command
+CMD ["/bin/bash"]

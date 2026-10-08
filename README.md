@@ -7,6 +7,7 @@ A Nextflow pipeline for processing 10X Genomics single-cell RNA-seq data using C
 - **GEX (Gene Expression) data**: Process standard 10X single-cell gene expression data using `cellranger count`
 - **VDJ (Immune Profiling) data**: Process V(D)J immune receptor sequencing data using `cellranger vdj`
 - **FLEX data**: Process multiplexed Fixed RNA Profiling data using `cellranger multi`
+- **Multiome (ATAC + GEX) data**: Process joint single-cell ATAC + Gene Expression data using `cellranger-arc count` (separate tool/container from standard Cell Ranger)
 - **SoupOrCell integration**: Optional demultiplexing and doublet detection for pooled samples
 - **Docker containers**: All processes run in containers for reproducibility
 - **Cloud-ready**: Configured for Google Cloud Platform with local testing profile
@@ -24,6 +25,8 @@ Input FASTQ files
     |-- VDJ data --> cellranger vdj --> V(D)J contig annotations + clonotypes
     |
     |-- FLEX data --> cellranger multi --> Per-sample matrices + multiplexing analysis
+    |
+    |-- MULTIOME data --> cellranger-arc count --> Joint ATAC + GEX matrix + peaks + clustering
 ```
 
 ## Quick Start
@@ -35,6 +38,7 @@ Input FASTQ files
 - Cell Ranger reference genome (download from [10X Genomics](https://www.10xgenomics.com/support/software/cell-ranger/downloads))
 - VDJ reference (required for VDJ data only, download from [10X Genomics](https://www.10xgenomics.com/support/software/cell-ranger/downloads))
 - Probe set CSV file (required for FLEX data only, download from [10X Genomics](https://www.10xgenomics.com/support/software/cell-ranger/downloads))
+- Cell Ranger ARC reference (required for MULTIOME data only, download from [10X Genomics](https://www.10xgenomics.com/support/software/cell-ranger-arc/downloads) — not compatible with the standard Cell Ranger GEX reference above)
 
 ### Installation
 
@@ -100,6 +104,19 @@ nextflow run main.nf \
 
 **Note**: FLEX data requires a probe set CSV file specific to your gene panel. Download from [10X Genomics Probe Sets](https://www.10xgenomics.com/support/software/cell-ranger/downloads).
 
+#### For MULTIOME (ATAC + Gene Expression) data:
+
+```bash
+nextflow run main.nf \
+    -profile local \
+    --data_type MULTIOME \
+    --samplesheet samplesheet_multiome.csv \
+    --arc_reference /path/to/refdata-cellranger-arc-GRCh38-2024-A \
+    --outdir results
+```
+
+**Note**: Multiome data is processed with `cellranger-arc count`, a separate tool/container from standard Cell Ranger, requiring its own pre-built reference (`--arc_reference`, not compatible with `--reference`). See [docs/MULTIOME.md](docs/MULTIOME.md) for details.
+
 ## Input Files
 
 ### Samplesheet Format
@@ -161,6 +178,16 @@ sample2,BC003|BC004,Treated
 
 Note: `REFERENCE_PATH` and `PROBE_SET_PATH` in the multi config will be automatically replaced with the actual reference and probe set paths.
 
+#### MULTIOME Samplesheet ([samplesheet_multiome.csv](samplesheet_multiome.csv))
+
+```csv
+sample_id,gex_fastq_file,atac_fastq_file
+sample1,/path/to/fastqs/sample1_gex/*_R{1,2}_*.fastq.gz,/path/to/fastqs/sample1_atac/*_R{1,2,3}_*.fastq.gz
+sample2,/path/to/fastqs/sample2_gex/*_R{1,2}_*.fastq.gz,/path/to/fastqs/sample2_atac/*_R{1,2,3}_*.fastq.gz
+```
+
+Each row provides one sample with two independent glob patterns — one for the Gene Expression FASTQs, one for the Chromatin Accessibility (ATAC) FASTQs. Note ATAC FASTQs use `R1`/`R2`/`R3` (R2 is the 16bp barcode read), different from the standard GEX `R1`/`R2` pair. See [docs/MULTIOME.md](docs/MULTIOME.md) for details on how these are processed.
+
 ## Output Structure
 
 ```
@@ -218,11 +245,12 @@ nextflow run main.nf --cellranger_container gcr.io/your-project/cellranger:10.0.
 Key parameters can be set in [nextflow.config](nextflow.config) or via command line:
 
 ```bash
---data_type         # 'GEX' or 'FLEX'
+--data_type         # 'GEX', 'FLEX', or 'MULTIOME'
 --samplesheet       # Path to samplesheet CSV
 --reference         # Path to Cell Ranger GEX reference
 --vdj_reference     # Path to Cell Ranger VDJ reference (REQUIRED for VDJ samples)
 --probe_set         # Path to probe set CSV (REQUIRED for FLEX only)
+--arc_reference     # Path to Cell Ranger ARC reference (REQUIRED for MULTIOME only)
 --outdir            # Output directory (default: ./results)
 --expected_cells    # Expected number of cells (optional)
 --force_cells       # Force cell number (optional)
@@ -242,6 +270,7 @@ Module-specific parameters are defined in [conf/modules.config](conf/modules.con
 ## Additional Documentation
 
 - **[VDJ (Immune Profiling)](docs/VDJ.md)**: Detailed guide for V(D)J immune receptor sequencing
+- **[Multiome (ATAC + GEX)](docs/MULTIOME.md)**: Detailed guide for Multiome processing with `cellranger-arc`
 - **[SoupOrCell](docs/SOUPORCELL.md)**: Guide for demultiplexing pooled samples
 
 ## Running on Google Cloud
@@ -268,6 +297,15 @@ nextflow run main.nf \
     --probe_set gs://bucket/Probe_Set_v1.0_GRCh38-2020-A.csv \
     --outdir gs://bucket/results \
     -c my_gcp_config.config
+
+# For MULTIOME data
+nextflow run main.nf \
+    -profile gcp \
+    --data_type MULTIOME \
+    --samplesheet samplesheet_multiome.csv \
+    --arc_reference gs://bucket/refdata-cellranger-arc-GRCh38-2024-A \
+    --outdir gs://bucket/results \
+    -c my_gcp_config.config
 ```
 
 Example GCP config (`my_gcp_config.config`):
@@ -292,6 +330,17 @@ google {
 
 - `per_sample_outs/`: Per-sample output directories containing matrices and metrics
 - `multi/multiplexing_analysis/`: Multiplexing analysis results
+
+### MULTIOME Data Output
+
+- `filtered_feature_bc_matrix/` / `raw_feature_bc_matrix/`: Combined gene + peak feature-barcode matrix
+- `atac_fragments.tsv.gz` (+ `.tbi` index): Per-fragment ATAC records
+- `atac_peaks.bed`, `atac_peak_annotation.tsv`: Called ATAC peaks and annotations
+- `atac_possorted_bam.bam` / `gex_possorted_bam.bam`: Per-assay alignments (omitted if `--create_bam=false`)
+- `per_barcode_metrics.csv`, `summary.csv`, `web_summary.html`: QC metrics and report
+- `analysis/`: Clustering, dimensionality reduction, TF motif analysis, feature linkage
+
+See [docs/MULTIOME.md](docs/MULTIOME.md) for full details.
 
 ### SoupOrCell Output (when enabled)
 

@@ -202,3 +202,17 @@ To update to a newer version:
 1. Download the new version URL from 10X Genomics
 2. Update the `CELLRANGER_URL` and version numbers in the Dockerfile
 3. Rebuild and push with the new version tag
+
+## Cell Ranger ARC (Multiome) Image
+
+Multiome (ATAC + Gene Expression) data requires a separate tool, `cellranger-arc`, which is not compatible with the standard `cellranger` binary/container above. See [Dockerfile.cellranger-arc](Dockerfile.cellranger-arc) and [build_and_push_arc.sh](build_and_push_arc.sh), which follow the same download-under-license-and-build pattern:
+
+```bash
+# 1. Download cellranger-arc-2.2.0.tar.gz from 10X Genomics into this directory
+#    https://www.10xgenomics.com/support/software/cell-ranger-arc/downloads
+
+# 2. Build and push
+./build_and_push_arc.sh
+```
+
+This pushes to the same Artifact Registry repository (`cellranger`) under a distinct image name (`cellranger-arc`), configured via `params.cellranger_arc_container` in [nextflow.config](../nextflow.config).
